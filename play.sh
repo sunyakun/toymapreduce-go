@@ -56,19 +56,20 @@ cd output/mr-tmp || exit 1
 rm -f mr-*
 cp ../../example/input/pg-*.txt ./
 
+INPUT=$(find  example/input/* | awk 'ORS="," {print $1}')
 failed_any=0
 
 #########################################################
 # first word-count
 
 # generate the correct output
-$BINARY_D$BINARY_DIR/mrsequential $BINARY_DIR/wc.so input/pg*txt || exit 1
+$BINARY_D$BINARY_DIR/mrsequential $BINARY_DIR/wc.so "$INPUT" || exit 1
 sort mr-out-0 > mr-correct-wc.txt
 rm -f mr-out*
 
 echo '***' Starting wc test.
 
-$TIMEOUT $BINARY_DIR/mapreduce coord -input input/pg*txt &
+$TIMEOUT $BINARY_DIR/mapreduce coord -input "$INPUT" &
 pid=$!
 
 # give the coordinator time to create the sockets.
@@ -102,13 +103,13 @@ wait
 rm -f mr-*
 
 # generate the correct output
-$BINARY_D$BINARY_DIR/mrsequential $BINARY_DIR/indexer.so input/pg*txt || exit 1
+$BINARY_D$BINARY_DIR/mrsequential $BINARY_DIR/indexer.so "$INPUT" || exit 1
 sort mr-out-0 > mr-correct-indexer.txt
 rm -f mr-out*
 
 echo '***' Starting indexer test.
 
-$TIMEOUT $BINARY_DIR/mapreduce coord -input input/pg*txt &
+$TIMEOUT $BINARY_DIR/mapreduce coord -input "$INPUT" &
 sleep 1
 
 # start multiple workers
@@ -132,7 +133,7 @@ echo '***' Starting map parallelism test.
 
 rm -f mr-*
 
-$TIMEOUT $BINARY_DIR/mapreduce coord coord -input input/pg*txt &
+$TIMEOUT $BINARY_DIR/mapreduce coord coord -input "$INPUT" &
 sleep 1
 
 $TIMEOUT $BINARY_DIR/mapreduce worker $BINARY_DIR/mtiming.so &
@@ -163,7 +164,7 @@ echo '***' Starting reduce parallelism test.
 
 rm -f mr-*
 
-$TIMEOUT $BINARY_DIR/mapreduce coord input/pg*txt &
+$TIMEOUT $BINARY_DIR/mapreduce coord "$INPUT" &
 sleep 1
 
 $TIMEOUT $BINARY_DIR/mapreduce worker $BINARY_DIR/rtiming.so &
@@ -186,7 +187,7 @@ echo '***' Starting job count test.
 
 rm -f mr-*
 
-$TIMEOUT $BINARY_DIR/mapreduce coord input/pg*txt &
+$TIMEOUT $BINARY_DIR/mapreduce coord "$INPUT" &
 sleep 1
 
 $TIMEOUT $BINARY_DIR/mapreduce worker $BINARY_DIR/jobcount.so &
@@ -216,7 +217,7 @@ echo '***' Starting early exit test.
 DF=anydone$$
 rm -f $DF
 
-($TIMEOUT $BINARY_DIR/mapreduce coord input/pg*txt ; touch $DF) &
+($TIMEOUT $BINARY_DIR/mapreduce coord "$INPUT" ; touch $DF) &
 
 # give the coordinator time to create the sockets.
 sleep 1
@@ -268,12 +269,12 @@ rm -f mr-*
 echo '***' Starting crash test.
 
 # generate the correct output
-$BINARY_DIR/mrsequential $BINARY_DIR/nocrash.so input/pg*txt || exit 1
+$BINARY_DIR/mrsequential $BINARY_DIR/nocrash.so "$INPUT" || exit 1
 sort mr-out-0 > mr-correct-crash.txt
 rm -f mr-out*
 
 rm -f mr-done
-($TIMEOUT $BINARY_DIR/mapreduce coord input/pg*txt ; touch mr-done ) &
+($TIMEOUT $BINARY_DIR/mapreduce coord "$INPUT" ; touch mr-done ) &
 sleep 1
 
 # start multiple workers

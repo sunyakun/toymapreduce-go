@@ -11,6 +11,7 @@ type SliceVar struct {
 }
 
 func (s *SliceVar) Set(val string) error {
+	val = strings.Trim(val, ",")
 	s.data = strings.Split(val, ",")
 	return nil
 }
@@ -27,7 +28,7 @@ type CoordinatorArguments struct {
 }
 
 func CoordinatorCommand(args CoordinatorArguments) {
-	coor := coordinator.NewCoordinator()
+	coor := coordinator.NewCoordinator(args.Inputfiles.data, uint32(args.NReduce))
 	if err := coordinator.NewRPCServer(coor, args.Address, uint16(args.Port)).Start(); err != nil {
 		panic(err)
 	}

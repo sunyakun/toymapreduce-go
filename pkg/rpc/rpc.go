@@ -13,18 +13,37 @@ const (
 	WorkerPhaseRunning = "RUNNING"
 )
 
-type HeartBeatRequest struct{}
+type Task struct {
+	UUID       string
+	Type       string
+	InputFiles []string
+}
+
+type HeartBeatRequest struct {
+	UUID string
+}
 
 type HeartBeatResponse struct{}
 
-type ApplyTaskRequest struct{}
+type ApplyTaskRequest struct {
+	WorkerUUID string
+}
 
-type ApplyTaskResponse struct{}
+type ApplyTaskResponse struct {
+	Task *Task
+}
 
-type TaskDoneRequest struct{}
+type TaskDoneRequest struct {
+	WorkerUUID      string
+	TaskUUID        string
+	OutputFilePaths []string
+}
 
 type TaskDoneResponse struct{}
 
-type TaskFailRequest struct{}
+type TaskFailRequest struct {
+	WorkerUUID string
+	TaskUUID   string
+}
 
 type TaskFailResponse struct{}
