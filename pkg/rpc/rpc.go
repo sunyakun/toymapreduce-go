@@ -11,7 +11,13 @@ const (
 
 	WorkerPhaseIdle    = "IDLE"
 	WorkerPhaseRunning = "RUNNING"
+	WorkerPhaseFailed  = "FAILED"
 )
+
+type OutputFileSolt struct {
+	ReduceIndex int
+	FilePath    string
+}
 
 type Task struct {
 	UUID       string
@@ -36,7 +42,7 @@ type ApplyTaskResponse struct {
 type TaskDoneRequest struct {
 	WorkerUUID      string
 	TaskUUID        string
-	OutputFilePaths []string
+	OutputFilePaths []OutputFileSolt
 }
 
 type TaskDoneResponse struct{}
@@ -47,3 +53,9 @@ type TaskFailRequest struct {
 }
 
 type TaskFailResponse struct{}
+
+type DoneRequest struct{}
+
+type DoneResponse struct {
+	Done bool
+}

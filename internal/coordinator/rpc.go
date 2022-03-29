@@ -7,7 +7,6 @@ import (
 	"net/rpc"
 
 	"github.com/sirupsen/logrus"
-	"github.com/sunyakun/toymapreduce-go/pkg/log"
 	rpctypes "github.com/sunyakun/toymapreduce-go/pkg/rpc"
 )
 
@@ -18,12 +17,12 @@ type RPCServer struct {
 	logger      *logrus.Logger
 }
 
-func NewRPCServer(coordinator *Coordinator, addr string, port uint16) *RPCServer {
+func NewRPCServer(coordinator *Coordinator, addr string, port uint16, logger *logrus.Logger) *RPCServer {
 	return &RPCServer{
 		address:     addr,
 		port:        port,
 		coordinator: coordinator,
-		logger:      log.GetLogger(),
+		logger:      logger,
 	}
 }
 
@@ -35,6 +34,7 @@ func (server *RPCServer) Start() error {
 	if err != nil {
 		return err
 	}
+
 	go func() {
 		server.logger.WithField("address", addr).Info("start rpc server")
 		if err := http.Serve(listen, nil); err != nil {
@@ -64,5 +64,10 @@ func (server *RPCServer) TaskDone(req *rpctypes.TaskDoneRequest, resp *rpctypes.
 
 func (server *RPCServer) TaskFail(req *rpctypes.TaskFailRequest, resp *rpctypes.TaskFailResponse) error {
 	server.coordinator.TaskFail(req.WorkerUUID, req.TaskUUID)
+	return nil
+}
+
+func (server *RPCServer) Done(req *rpctypes.DoneRequest, resp *rpctypes.DoneResponse) error {
+	resp.Done = server.coordinator.Done()
 	return nil
 }

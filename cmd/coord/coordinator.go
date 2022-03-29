@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/sunyakun/toymapreduce-go/internal/coordinator"
+	"github.com/sunyakun/toymapreduce-go/pkg/log"
 )
 
 type SliceVar struct {
@@ -28,8 +29,9 @@ type CoordinatorArguments struct {
 }
 
 func CoordinatorCommand(args CoordinatorArguments) {
-	coor := coordinator.NewCoordinator(args.Inputfiles.data, uint32(args.NReduce))
-	if err := coordinator.NewRPCServer(coor, args.Address, uint16(args.Port)).Start(); err != nil {
+	logger := log.GetLogger()
+	coor := coordinator.NewCoordinator(args.Inputfiles.data, uint32(args.NReduce), logger)
+	if err := coordinator.NewRPCServer(coor, args.Address, uint16(args.Port), logger).Start(); err != nil {
 		panic(err)
 	}
 }

@@ -19,5 +19,6 @@ func GetLogger() *logrus.Logger {
 	if logger != nil {
 		return logger
 	}
-	return logrus.New()
+	logger = logrus.New()
+	return logger
 }
