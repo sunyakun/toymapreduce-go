@@ -137,6 +137,14 @@ func NewCoordinator(inputFiles []string, nreduce uint32, logger *logrus.Logger) 
 	return c
 }
 
+func (c *Coordinator) GetWorkerConfig() rpctypes.FetchConfigResponse {
+	return rpctypes.FetchConfigResponse{
+		NReduce: c.nreduce,
+		// TODO do not harcode this field
+		DFS: "file:///Users/bytedance/Projects/toymapreduce-go/output",
+	}
+}
+
 func (c *Coordinator) ScanWorkers() {
 	for {
 		c.workers.Range(func(key, val any) bool {

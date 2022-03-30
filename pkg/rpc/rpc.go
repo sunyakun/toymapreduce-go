@@ -59,3 +59,10 @@ type DoneRequest struct{}
 type DoneResponse struct {
 	Done bool
 }
+
+type FetchConfigRequest struct{}
+
+type FetchConfigResponse struct {
+	NReduce uint32
+	DFS     string
+}

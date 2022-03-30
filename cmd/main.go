@@ -42,7 +42,11 @@ func main() {
 		}
 		coord.CoordinatorCommand(coordArgs)
 	case "worker":
-		workerFlags.Parse(os.Args[1:])
+		workerFlags.Parse(os.Args[2:])
+		if workerArgs.PluginPath == "" {
+			workerFlags.Usage()
+			os.Exit(1)
+		}
 		worker.WorkerCommand(workerArgs)
 	default:
 		Usage()

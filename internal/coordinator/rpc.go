@@ -71,3 +71,8 @@ func (server *RPCServer) Done(req *rpctypes.DoneRequest, resp *rpctypes.DoneResp
 	resp.Done = server.coordinator.Done()
 	return nil
 }
+
+func (server *RPCServer) FetchConfig(req *rpctypes.FetchConfigRequest, resp *rpctypes.FetchConfigResponse) error {
+	*resp = server.coordinator.GetWorkerConfig()
+	return nil
+}

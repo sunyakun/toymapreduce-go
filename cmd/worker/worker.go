@@ -11,7 +11,7 @@ type WorkerArguments struct {
 }
 
 func WorkerCommand(args WorkerArguments) {
-	err := worker.NewWorker(args.Address, uint32(args.Port)).Start()
+	err := worker.NewWorker(args.Address, uint32(args.Port), args.PluginPath).Start()
 	if err != nil {
 		panic(err)
 	}

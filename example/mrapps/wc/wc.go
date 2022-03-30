@@ -21,7 +21,7 @@ import (
 // and look only at the contents argument. The return value is a slice
 // of key/value pairs.
 //
-func Map(filename string, contents string) []mr.KeyValue {
+func Map(filename string, contents string) ([]mr.KeyValue, error) {
 	// function to detect word separators.
 	ff := func(r rune) bool { return !unicode.IsLetter(r) }
 
@@ -30,10 +30,10 @@ func Map(filename string, contents string) []mr.KeyValue {
 
 	kva := []mr.KeyValue{}
 	for _, w := range words {
-		kv := mr.KeyValue{w, "1"}
+		kv := mr.KeyValue{Key: w, Value: "1"}
 		kva = append(kva, kv)
 	}
-	return kva
+	return kva, nil
 }
 
 //
@@ -41,7 +41,7 @@ func Map(filename string, contents string) []mr.KeyValue {
 // map tasks, with a list of all the values created for that key by
 // any map task.
 //
-func Reduce(key string, values []string) string {
+func Reduce(key string, values []string) (string, error) {
 	// return the number of occurrences of this word.
-	return strconv.Itoa(len(values))
+	return strconv.Itoa(len(values)), nil
 }
