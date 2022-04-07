@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/rpc"
 	"plugin"
+	"reflect"
 	"sort"
 	"strings"
 	"sync"
@@ -29,26 +30,30 @@ func ihash(key string) int {
 
 func loadPlugin(p string) (mpf mr.MapFunc, redf mr.ReduceFunc, err error) {
 	var symbol plugin.Symbol
-	var ok bool
 
 	plug, err := plugin.Open(p)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	MapFuncType := reflect.TypeOf((*mr.MapFunc)(nil)).Elem()
+	ReduceFuncType := reflect.TypeOf((*mr.ReduceFunc)(nil)).Elem()
+
 	if symbol, err = plug.Lookup("Map"); err != nil {
 		return nil, nil, err
 	}
-	if mpf, ok = symbol.(func(filename string, content string) ([]mr.KeyValue, error)); !ok {
+	if !reflect.ValueOf(symbol).CanConvert(MapFuncType) {
 		return nil, nil, errors.New("'Map' func is not a type of mr.MapFunc")
 	}
+	mpf = reflect.ValueOf(symbol).Convert(MapFuncType).Interface().(mr.MapFunc)
 
 	if symbol, err = plug.Lookup("Reduce"); err != nil {
 		return nil, nil, err
 	}
-	if redf, ok = symbol.(func(key string, values []string) (string, error)); !ok {
+	if !reflect.ValueOf(symbol).CanConvert(ReduceFuncType) {
 		return nil, nil, errors.New("'Reduce' func is not a type of mr.ReduceFunc")
 	}
+	redf = reflect.ValueOf(symbol).Convert(ReduceFuncType).Interface().(mr.ReduceFunc)
 
 	return mpf, redf, nil
 }
@@ -96,20 +101,23 @@ func (w *Worker) Start() (err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
+		defer wg.Done()
+
+		ticker := time.NewTicker(3 * time.Second)
+		defer ticker.Stop()
+
 		for {
 			select {
-			case <-time.Tick(3 * time.Second):
+			case <-ticker.C:
 				if err := w.rpcClient.Call("RPCServer.HeartBeat", &rpctypes.HeartBeatRequest{UUID: w.uuid}, &rpctypes.HeartBeatResponse{}); err != nil {
 					if errors.Is(err, rpc.ErrShutdown) {
 						w.logger.Info("remote server shutdown")
-						wg.Done()
 						return
 					}
 					w.logger.WithError(err).Error("heartbeat error")
 				}
 			case <-w.ctx.Done():
 				w.logger.Info("stop heartbeat goroutine")
-				wg.Done()
 				return
 			}
 		}
@@ -242,12 +250,74 @@ func (w *Worker) domap(input string) ([]rpctypes.OutputFileSolt, error) {
 	return output, nil
 }
 
+func (w *Worker) doreduce(input, output string) error {
+	client, err := fsutil.NewFsClient(input)
+	if err != nil {
+		w.logger.WithError(err).WithField("input", input).Error("create fs client fail")
+		return err
+	}
+	reader, err := client.Open(input)
+	if err != nil {
+		w.logger.WithError(err).WithField("input", input).Error("open fs fail")
+		return err
+	}
+	defer reader.Close()
+
+	writer, err := client.Append(output)
+	if err != nil {
+		w.logger.WithError(err).WithField("output", output).Error("create output fail")
+		return err
+	}
+	defer writer.Close()
+
+	iter := mr.NewKVIterator(reader)
+	for iter.NextKey() {
+		resultIter, err := w.reducef(iter)
+		if err != nil {
+			w.logger.WithError(err).WithField("input", input).Error("reduce fail")
+			return err
+		}
+
+		for v, err := resultIter.Next(); err != mr.ErrStopIter; v, err = resultIter.Next() {
+			if err != nil {
+				w.logger.WithError(err).Error("next result fail")
+				return err
+			}
+			_, err = writer.Write([]byte(v.(string) + "\n"))
+			if err != nil {
+				w.logger.WithError(err).WithField("output", output).Error("write result fail")
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func (w *Worker) doTask(task rpctypes.Task) ([]rpctypes.OutputFileSolt, error) {
 	if task.Type == rpctypes.TaskTypeMap {
 		return w.domap(task.InputFiles[0])
 	} else if task.Type == rpctypes.TaskTypeReduce {
-		// TODO implement doreduce method
-		w.logger.Error("not implements")
+		output := fmt.Sprintf("%s/mrout-worker-%s-reduce", w.workerConfig.DFS, w.uuid)
+		client, err := fsutil.NewFsClient(output)
+		if err != nil {
+			w.logger.WithError(err).WithField("output", output).Error("create fs client fail")
+			return nil, err
+		}
+
+		writer, err := client.Create(output)
+		if err != nil {
+			w.logger.WithError(err).WithField("output", output).Error("create output file fail")
+			return nil, err
+		}
+		writer.Close()
+
+		for _, input := range task.InputFiles {
+			if err := w.doreduce(input, output); err != nil {
+				return nil, err
+			}
+		}
+		return []rpctypes.OutputFileSolt{{FilePath: output}}, nil
 	}
 	return nil, nil
 }

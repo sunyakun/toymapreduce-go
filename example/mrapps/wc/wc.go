@@ -41,7 +41,15 @@ func Map(filename string, contents string) ([]mr.KeyValue, error) {
 // map tasks, with a list of all the values created for that key by
 // any map task.
 //
-func Reduce(key string, values []string) (string, error) {
+func Reduce(valueIter mr.Iterator) (mr.Iterator, error) {
 	// return the number of occurrences of this word.
-	return strconv.Itoa(len(values)), nil
+	var sum int
+	for _, err := valueIter.Next(); err != mr.ErrStopIter; _, err = valueIter.Next() {
+		if err != nil {
+			return nil, err
+		}
+		sum += 1
+	}
+
+	return mr.NewLineIterator(strings.NewReader(strconv.Itoa(sum))), nil
 }

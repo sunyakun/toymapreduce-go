@@ -27,6 +27,7 @@ type CoordinatorArguments struct {
 	NReduce    uint64
 	Address    string
 	Port       uint64
+	DFS        string
 }
 
 func CoordinatorCommand(args CoordinatorArguments) {
@@ -41,7 +42,7 @@ func CoordinatorCommand(args CoordinatorArguments) {
 		args.Inputfiles.data[ix] = "file://" + args.Inputfiles.data[ix]
 	}
 
-	coor := coordinator.NewCoordinator(args.Inputfiles.data, uint32(args.NReduce), logger)
+	coor := coordinator.NewCoordinator(args.Inputfiles.data, uint32(args.NReduce), args.DFS, logger)
 	if err := coordinator.NewRPCServer(coor, args.Address, uint16(args.Port), logger).Start(); err != nil {
 		panic(err)
 	}

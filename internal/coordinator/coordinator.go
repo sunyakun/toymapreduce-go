@@ -105,11 +105,12 @@ type Coordinator struct {
 	maxFailedClock uint32
 	maxRemoveClock uint32
 	maptaskNum     uint32
+	dfs            string
 
 	logger *logrus.Logger
 }
 
-func NewCoordinator(inputFiles []string, nreduce uint32, logger *logrus.Logger) *Coordinator {
+func NewCoordinator(inputFiles []string, nreduce uint32, dfs string, logger *logrus.Logger) *Coordinator {
 	ctx, cancelf := context.WithCancel(context.Background())
 	c := &Coordinator{
 		ctx:         ctx,
@@ -118,6 +119,7 @@ func NewCoordinator(inputFiles []string, nreduce uint32, logger *logrus.Logger) 
 		reducetasks: make(chan Task, nreduce),
 		nreduce:     nreduce,
 		logger:      logger,
+		dfs:         dfs,
 	}
 	for _, in := range inputFiles {
 		taskuuid := uuid.NewString()
@@ -140,8 +142,7 @@ func NewCoordinator(inputFiles []string, nreduce uint32, logger *logrus.Logger) 
 func (c *Coordinator) GetWorkerConfig() rpctypes.FetchConfigResponse {
 	return rpctypes.FetchConfigResponse{
 		NReduce: c.nreduce,
-		// TODO do not harcode this field
-		DFS: "file:///Users/bytedance/Projects/toymapreduce-go/output",
+		DFS:     c.dfs,
 	}
 }
 

@@ -22,6 +22,7 @@ func main() {
 	coordFlags.Uint64Var(&coordArgs.NReduce, "nreduce", 4, "concurrent number of reduce workers")
 	coordFlags.StringVar(&coordArgs.Address, "address", "localhost", "rpc server bind address")
 	coordFlags.Uint64Var(&coordArgs.Port, "port", 6789, "rpc server listening port")
+	coordFlags.StringVar(&coordArgs.DFS, "dfs", "", "distribuate file system path, the worker will use this path to save intermediate files")
 
 	workerFlags := flag.NewFlagSet("worker", flag.ExitOnError)
 	workerFlags.StringVar(&workerArgs.PluginPath, "mrpath", "", "mapreduce function plugin path")
